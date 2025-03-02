@@ -104,7 +104,7 @@ io.on("connection", (socket) => {
   console.log("user connected");
   console.log(socket.id);
   socket.on("join", async (id) => {
-    console.log("connet");
+    console.log("connect");
     await usermodel.findByIdAndUpdate(id, { socketId: socket.id });
   });
 
@@ -112,7 +112,7 @@ io.on("connection", (socket) => {
     console.log(obj.id)
     const user = await usermodel.findOne({_id :
         obj.id});
-    // guptaa raand
+    
     socket.to(user.socketId).emit('msg', { msg : obj.message  })
    })
 

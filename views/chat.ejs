@@ -58,8 +58,10 @@
   }
 
   function sendMessage(  ){
-    const message = document.querySelector('input').value;
-
+    const input = document.querySelector('input')
+    const message = input.value;
+    input.value = "";
+    
     socket.emit('message',{
         message ,
         id :  reciever
