@@ -53,8 +53,9 @@
     <script src="/socket.io/socket.io.js"></script>
     <script>
       const socket = io();
-      console.log("<%=user._id%>");
-      socket.emit("join", "<%=user._id%>");
+      const userId = "<%=user._id%>";
+      console.log(userId);
+      socket.emit("join", userId);
 
       let receiver = "";
 
@@ -82,21 +83,27 @@
         fetch(`/chats/${id}`)
           .then((response) => response.json())
           .then((chats) => {
+            console.log(chats);
             const chatBox = document.querySelector(".chat-box-body");
             chatBox.innerHTML = ""; // Clear previous messages
             chats.forEach((chat) => {
+              console.log(1);
               const messageDiv = document.createElement("div");
               messageDiv.classList.add(
                 "p-2",
                 "rounded-lg",
                 "mb-2",
-                chat.senderId === "<%=user._id%>"
-                  ? "bg-blue-500 text-white self-end"
-                  : "bg-gray-200 text-black self-start"
+                
               );
+              if (chat.senderId === userId) {
+  messageDiv.classList.add("p-2", "rounded-lg", "mb-2", "bg-blue-500", "text-white", "self-end");
+} else {
+  messageDiv.classList.add("p-2", "rounded-lg", "mb-2", "bg-gray-200", "text-black", "self-start");
+}
               messageDiv.textContent = chat.message;
               chatBox.appendChild(messageDiv);
             });
+          
           });
       }
 
