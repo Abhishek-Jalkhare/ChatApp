@@ -6,6 +6,7 @@ const ejs = require("ejs");
 const GoogleStrategy = require("passport-google-oauth20").Strategy;
 require("./config/db.config.js");
 const usermodel = require("./models/user.model.js");
+const chatModel = require("./models/chat.model.js"); // Import Chat model
 const { log } = require("console");
 const app = express();
 
@@ -76,7 +77,7 @@ app.get(
 );
 
 app.get("/profile", async (req, res) => {
-  // console.log(req.user);
+  console.log(req.user);
 
   const LoggedInUser = await usermodel.findOne({
     email: req.user.emails[0].value,
@@ -87,15 +88,13 @@ app.get("/profile", async (req, res) => {
       $ne: null,
     },
     _id: {
-      $ne : LoggedInUser._id
-    }
+      $ne: LoggedInUser._id,
+    },
   });
-  console.log(onlineUser)
 
-  res.render("chat", { user: LoggedInUser,
-    onlineUser
-   });
-   
+  console.log(onlineUser);
+
+  res.render("chat", { user: LoggedInUser, onlineUser });
 });
 
 const server = require("http").createServer(app);
@@ -103,27 +102,79 @@ const io = require("socket.io")(server);
 io.on("connection", (socket) => {
   console.log("user connected");
   console.log(socket.id);
+
   socket.on("join", async (id) => {
     console.log("connect");
     await usermodel.findByIdAndUpdate(id, { socketId: socket.id });
   });
 
-  socket.on('message', async (obj)=>{
-    console.log(obj.id)
-    const user = await usermodel.findOne({_id :
-        obj.id});
-    
-    socket.to(user.socketId).emit('msg', { msg : obj.message  })
-   })
+  socket.on("message", async (obj) => {
+    console.log(obj);
 
+    // Validate the message content
+    if (!obj.message || obj.message.trim() === "") {
+      console.error("Message content is empty");
+      return;
+    }
 
-   //crypto lib .randomnbytes() method se random string genrate3
+    // Validate the receiver ID
+    if (!obj.id || obj.id.trim() === "") {
+      console.error("Receiver ID is empty");
+      return;
+    }
+
+    // Find the sender (current user) using the socket ID
+    const sender = await usermodel.findOne({ socketId: socket.id });
+    if (!sender) {
+      console.error("Sender not found");
+      return;
+    }
+
+    // Find the receiver
+    const receiver = await usermodel.findOne({ _id: obj.id });
+    if (!receiver) {
+      console.error("Receiver not found");
+      return;
+    }
+
+    // Save chat to database
+    const chat = new chatModel({
+      senderId: sender._id, // Use the sender's ObjectId
+      receiverId: receiver._id, // Use the receiver's ObjectId
+      message: obj.message,
+    });
+    await chat.save();
+
+    // Emit message to receiver
+    socket.to(receiver.socketId).emit("msg", {
+      senderId: sender._id,
+      message: obj.message,
+    });
+  });
+
   socket.on("disconnect", async () => {
     await usermodel.findOneAndUpdate(
       { socketId: socket.id },
       { socketId: null }
     );
   });
+});
+
+// Endpoint to fetch chat history
+app.get("/chats/:receiverId", async (req, res) => {
+  const senderId = req.user._id; // Assuming user is authenticated
+  const receiverId = req.params.receiverId;
+
+  const chats = await chatModel
+    .find({
+      $or: [
+        { senderId, receiverId },
+        { senderId: receiverId, receiverId: senderId },
+      ],
+    })
+    .sort({ timestamp: 1 });
+
+  res.json(chats);
 });
 
 server.listen(3000);
