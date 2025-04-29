@@ -38,7 +38,7 @@ const authMiddleware = async (req, res, next) => {
   }
   
 }  
-
+app.use('/resources', express.static('resources'));
 app.set("view engine", "ejs");
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
@@ -82,6 +82,11 @@ app.get("/", (req, res) => {
 app.get('/login' , (req, res) => {
   res.render('login')
 });
+
+app.get('/logout' , (req, res) => {
+  res.clearCookie("jwt");
+  res.redirect('/');
+}); 
 
 app.post('/login' , async (req, res) => {
   const { email, password } = req.body;

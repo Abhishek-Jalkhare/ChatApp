@@ -16,7 +16,7 @@ const userSchema = new mongoose.Schema({
     },
     image: {
         type: String,
-        default:'./resources/default-profile-picture.avif'
+        default:'/resources/default-profile-picture.jpg'
     },
     socketId: {
         type: String,
